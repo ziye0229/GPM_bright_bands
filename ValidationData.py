@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import os
 import random
-import tqdm
+from tqdm import tqdm
 from collections import Counter
 
 
@@ -94,12 +94,8 @@ def test3(f):
     return Counter(distance)
 
 
-
-
-
-
 cnt = Counter()
-files = getFileList('data/train')
+files = getFileList('F:\GPM')
 # print(files)
 files = random.sample(files, 100)
 for file_path in tqdm(files, desc='Processing'):
@@ -107,7 +103,7 @@ for file_path in tqdm(files, desc='Processing'):
     # test1(f)
     # test2(f)
     cnt += test3(f)
-    print(cnt)
+
     # print('Finish!\t', file_path)
 
     # CSF = f['NS']['CSF']
@@ -120,8 +116,9 @@ for file_path in tqdm(files, desc='Processing'):
     # np_factor = np.array(zFactorMeasured, dtype='float32')
     # np_factor[np_factor <= -28888.0] = 0
     # print(np_factor.min(), np_factor.max())
-    
+
     f.close()
+print(cnt)
 
 # i = 176
 # o = 88
