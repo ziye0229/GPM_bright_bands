@@ -103,8 +103,8 @@ for file_path in tqdm(files, desc='Processing'):
     # test1(f)
     # test2(f)
     cnt += test3(f)
-    cnt = sorted(cnt, key=lambda x:x.key)
-    print(cnt)
+
+    print(sorted(cnt.items(), key=lambda x: x[0], reverse=False))
     # print('Finish!\t', file_path)
 
     # CSF = f['NS']['CSF']
