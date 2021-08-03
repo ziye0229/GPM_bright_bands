@@ -4,6 +4,7 @@ import os
 import random
 from tqdm import tqdm
 from collections import Counter
+import matplotlib.pyplot as plt
 
 
 def getFileList(root_dir):
@@ -104,7 +105,6 @@ for file_path in tqdm(files, desc='Processing'):
     # test2(f)
     cnt += test3(f)
 
-    print(sorted(cnt.items(), key=lambda x: x[0], reverse=False))
     # print('Finish!\t', file_path)
 
     # CSF = f['NS']['CSF']
@@ -119,6 +119,16 @@ for file_path in tqdm(files, desc='Processing'):
     # print(np_factor.min(), np_factor.max())
 
     f.close()
+
+x = []
+y = []
+rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
+for item in rst:
+    x.append(item[0])
+    y.append(item[1])
+fig, ax = plt.subplots(figsize=(10, 7))
+ax.bar(x=x, height=y)
+ax.set_title("零度层与亮带距离分布", fontsize=15)
 
 # i = 176
 # o = 88
