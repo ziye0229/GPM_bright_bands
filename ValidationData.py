@@ -1,6 +1,9 @@
 import h5py
 import numpy as np
 import os
+import random
+import tqdm
+from collections import Counter
 
 
 def getFileList(root_dir):
@@ -73,13 +76,38 @@ def test2(f):
                 print(pixel_flagBB, pixel_ZeroDeg)
 
 
+def test3(f):
+    distance = []
+    CSF = f['NS']['CSF']
+    flagBB = CSF['flagBB']
+    # BBTop = CSF['binBBTop']
+    # BBBottom = CSF['binBBBottom']
+    BBPeak = CSF['binBBPeak']
+    VER = f['NS']['VER']
+    ZeroDeg = VER['binZeroDeg']
 
+    for pixels_flagBB, pixels_BBPeak, pixels_ZeroDeg in zip(flagBB, BBPeak, ZeroDeg):
+        for pixel_flagBB, pixel_BBPeak, pixel_ZeroDeg in zip(pixels_flagBB, pixels_BBPeak, pixels_ZeroDeg):
+            if int(pixel_flagBB) > 0:
+                distance.append(int(pixel_ZeroDeg) - int(pixel_BBPeak))
+
+    return Counter(distance)
+
+
+
+
+
+
+cnt = Counter()
 files = getFileList('data/train')
 # print(files)
-for file_path in files:
+files = random.sample(files, 100)
+for file_path in tqdm(files, desc='Processing'):
     f = h5py.File(file_path, 'r')
     # test1(f)
     # test2(f)
+    cnt += test3(f)
+    print(cnt)
     # print('Finish!\t', file_path)
 
     # CSF = f['NS']['CSF']
@@ -92,20 +120,20 @@ for file_path in files:
     # np_factor = np.array(zFactorMeasured, dtype='float32')
     # np_factor[np_factor <= -28888.0] = 0
     # print(np_factor.min(), np_factor.max())
-    #
-    # f.close()
+    
+    f.close()
 
-i = 176
-o = 88
-for k in range(2, 7):
-    for p in range(0, 4):
-        for s in range(1, 4):
-            # if (o + 2 * p - k) % s == 0:
-            #     if o == s * (i - 1) - 2 * p + k:
-            #         print('k:{}, p:{}, s:{}'.format(k, p, s))
-            # else:
-            #     if o == s * (i - 1) - 2 * p + k + (o + 2 * p - k) % s:
-            #         print('k:{}, p:{}, s:{}'.format(k, p, s))
+# i = 176
+# o = 88
+# for k in range(2, 7):
+#     for p in range(0, 4):
+#         for s in range(1, 4):
+#             # if (o + 2 * p - k) % s == 0:
+#             #     if o == s * (i - 1) - 2 * p + k:
+#             #         print('k:{}, p:{}, s:{}'.format(k, p, s))
+#             # else:
+#             #     if o == s * (i - 1) - 2 * p + k + (o + 2 * p - k) % s:
+#             #         print('k:{}, p:{}, s:{}'.format(k, p, s))
 
-            if o == (i - k + 2 * p) // s + 1:
-                print('k:{}, p:{}, s:{}'.format(k, p, s))
+#             if o == (i - k + 2 * p) // s + 1:
+#                 print('k:{}, p:{}, s:{}'.format(k, p, s))
