@@ -8,3 +8,5 @@
 /httpRequests/
 .idea/
 *.HDF5
+*.pth
+*.pyc
