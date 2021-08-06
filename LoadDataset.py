@@ -42,11 +42,12 @@ class LoadBBDataset(Dataset):
                 self.zFactorMeasured_sliced[self.zFactorMeasured_sliced <= -200.0] = -200.0
 
                 self.flagBB_sliced = self.sliceData_2D(np.array(flagBB, dtype='int32'))
-                self.flagBB_sliced[self.flagBB_sliced < 0] = 0
-                self.flagBB_sliced[self.flagBB_sliced == 0] = 1
-                self.flagBB_sliced[self.flagBB_sliced == 1] = 2
-                self.flagBB_sliced[self.flagBB_sliced == 2] = 3
                 self.flagBB_sliced[self.flagBB_sliced == 3] = 4
+                self.flagBB_sliced[self.flagBB_sliced == 2] = 3
+                self.flagBB_sliced[self.flagBB_sliced == 1] = 2
+                self.flagBB_sliced[self.flagBB_sliced == 0] = 1
+                self.flagBB_sliced[self.flagBB_sliced < 0] = 0
+                
                 self.bbTop_sliced = self.sliceData_2D(np.array(BBTop, dtype='int16'))
                 self.bbTop_sliced[self.bbTop_sliced <= 0] = 0
                 self.bbBottom_sliced = self.sliceData_2D(np.array(BBBottom, dtype='int16'))
@@ -129,7 +130,7 @@ if __name__ == '__main__':
 
         print(result[0], result[1])
         print(result[0].shape, result[1].shape)
-        
+
     #     result[1][result[1] > 0] = 1
     #     label_sum += result[1].sum()
     #     if (i+1) % 100 == 0:
