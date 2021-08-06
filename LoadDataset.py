@@ -27,6 +27,7 @@ class LoadBBDataset(Dataset):
             # print('Loading {}/{}\t{}'.format(idx // self.slice_num, len(self.files), file_path.split('\\')[-1]))
             with h5py.File(file_path, 'r') as f:
                 CSF = f['NS']['CSF']
+                flagBB = CSF['flagBB']
                 BBTop = CSF['binBBTop']
                 BBBottom = CSF['binBBBottom']
                 BBPeak = CSF['binBBPeak']
@@ -39,6 +40,12 @@ class LoadBBDataset(Dataset):
                 self.zFactorMeasured_sliced = self.sliceData_3D(np.array(zFactorMeasured, dtype='float32'))
                 self.zFactorMeasured_sliced[self.zFactorMeasured_sliced <= -200.0] = -200.0
 
+                self.flagBB_sliced = self.sliceData_2D(np.array(flagBB, dtype='int32'))
+                self.flagBB_sliced[self.flagBB_sliced < 0] = 0
+                self.flagBB_sliced[self.flagBB_sliced == 0] = 1
+                self.flagBB_sliced[self.flagBB_sliced == 1] = 2
+                self.flagBB_sliced[self.flagBB_sliced == 2] = 3
+                self.flagBB_sliced[self.flagBB_sliced == 3] = 4
                 self.bbTop_sliced = self.sliceData_2D(np.array(BBTop, dtype='int16'))
                 self.bbTop_sliced[self.bbTop_sliced <= 0] = 0
                 self.bbBottom_sliced = self.sliceData_2D(np.array(BBBottom, dtype='int16'))
@@ -107,7 +114,10 @@ class LoadBBDataset(Dataset):
         # return np.concatenate((np.expand_dims(self.bbTop_sliced[idx % self.slice_num], axis=0),
         #                         np.expand_dims(self.bbBottom_sliced[idx % self.slice_num], axis=0),
         #                         np.expand_dims(self.bbPeak_sliced[idx % self.slice_num], axis=0)))
-        return self.bbTop_sliced[idx % self.slice_num]
+
+        # return self.bbTop_sliced[idx % self.slice_num]
+
+        return self.flagBB_sliced[idx % self.slice_num]
 
 if __name__ == '__main__':
     my_dataset = LoadBBDataset('data/train', 101, 150)

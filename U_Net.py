@@ -195,7 +195,7 @@ GPM_BB_train_data = LoadBBDataset('data/train', slice_width, slice_num)
 train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, shuffle=False, num_workers=0)
 # val_loader = DataLoader(GPM_BB_val_data, batch_size=batch_size, shuffle=False, num_workers=0)
 
-model = U_Net_3D(177, 178).to(device)
+model = U_Net_3D(177, 5).to(device)
 # model = U_Net_3D(177, 1).to(device)
 opt = optim.SGD(model.parameters(), lr=lr)
 Loss = nn.CrossEntropyLoss()
@@ -210,14 +210,17 @@ for i in range(0, epoch):
         output = model(data[:, 1:, ...], data[:, 0, ...])
 
         opt.zero_grad()
-        loss = Loss(output, target.long()) * math.log((target.sum() + 10), 10)
+        loss = Loss(output, target.long())
+        # loss = Loss(output, target.long()) * math.log((target.sum() + 10), 10)
         # loss = torch.log(Loss(output.float(), torch.unsqueeze(target, dim=1).float()) + 1)
         loss.backward()
 
         opt.step()
 
+        loss_sum += loss
         loss_sum += math.exp(loss)
-        if batch_idx % 10 == 0:
+        times = 100
+        if batch_idx % times == 0:
             Conv1_weight = model.Conv1.down3D[0].weight
             Conv_1x1_weight = model.Conv_1x1.weight
             print('Conv1 weight:\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.data.max(), Conv1_weight.data.min()))
@@ -225,9 +228,9 @@ for i in range(0, epoch):
             print('Conv1 grad:\t\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.grad.data.max(), Conv1_weight.grad.data.min()))
             print('Conv_1x1 grad:\t\tMax:\t{}, Min:\t{}'.format(Conv_1x1_weight.grad.data.max(),
                                                                 Conv_1x1_weight.grad.data.min()))
-            print('epoch:{}, batch:{}, loss:{}, pure_loss:{}'.format(i + 1, batch_idx, loss,
-                                                                     loss / math.log((target.sum() + 10), 10)))
-            # print('epoch:{}, batch:{}, loss:{}'.format(i + 1, batch_idx, loss_sum/10))
+            # print('epoch:{}, batch:{}, loss:{}, pure_loss:{}'.format(i + 1, batch_idx, loss,
+            #                                                          loss / math.log((target.sum() + 10), 10)))
+            print('epoch:{}, batch:{}, loss:{}'.format(i + 1, batch_idx, loss_sum/times))
             loss_sum = 0
 
         # if batch_idx % 50 == 0:
