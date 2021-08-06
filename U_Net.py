@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from LoadDataset import LoadBBDataset
 from torch import optim
 import math
+import numpy as np
 
 
 class DownConv(nn.Module, ABC):
@@ -195,10 +196,11 @@ GPM_BB_train_data = LoadBBDataset('data/train', slice_width, slice_num)
 train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, shuffle=False, num_workers=0)
 # val_loader = DataLoader(GPM_BB_val_data, batch_size=batch_size, shuffle=False, num_workers=0)
 
-model = U_Net_3D(177, 5).to(device)
+model = U_Net_3D(177, 3).to(device)
 # model = U_Net_3D(177, 1).to(device)
 opt = optim.SGD(model.parameters(), lr=lr)
-Loss = nn.CrossEntropyLoss()
+# Loss = nn.CrossEntropyLoss()
+Loss = nn.CrossEntropyLoss(weight=torch.tensor([1, 20, 100], dtype=torch.float32).to(device))
 # Loss = nn.MSELoss(reduction='mean')
 
 # print(model)

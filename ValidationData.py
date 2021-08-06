@@ -102,15 +102,14 @@ def test4(f):
     flagBB = np.array(flagBB, dtype='int32')
     flagBB_neg = flagBB[flagBB < 0]
     flagBB_0 = flagBB[flagBB == 0]
-    flagBB_1 = flagBB[flagBB == 1]
-    flagBB_2 = flagBB[flagBB == 2]
-    flagBB_3 = flagBB[flagBB == 3]
-    return flagBB.shape[0]*flagBB.shape[1], [flagBB_neg.shape[0], flagBB_0.shape[0], flagBB_1.shape[0], flagBB_2.shape[0], flagBB_3.shape[0]]
+    flagBB_pos = flagBB[flagBB > 0]
+
+    return flagBB.shape[0]*flagBB.shape[1], [flagBB_neg.shape[0], flagBB_0.shape[0], flagBB_pos.shape[0]]
 
 
 cnt = Counter()
 total_shape_sum = 0
-shape_list_sum = [0, 0, 0, 0, 0]
+shape_list_sum = [0, 0, 0]
 files = getFileList('F:\GPM')
 # print(files)
 files = random.sample(files, 500)

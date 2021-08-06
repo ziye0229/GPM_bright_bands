@@ -42,9 +42,7 @@ class LoadBBDataset(Dataset):
                 self.zFactorMeasured_sliced[self.zFactorMeasured_sliced <= -200.0] = -200.0
 
                 self.flagBB_sliced = self.sliceData_2D(np.array(flagBB, dtype='int32'))
-                self.flagBB_sliced[self.flagBB_sliced == 3] = 4
-                self.flagBB_sliced[self.flagBB_sliced == 2] = 3
-                self.flagBB_sliced[self.flagBB_sliced == 1] = 2
+                self.flagBB_sliced[self.flagBB_sliced > 0] = 2
                 self.flagBB_sliced[self.flagBB_sliced == 0] = 1
                 self.flagBB_sliced[self.flagBB_sliced < 0] = 0
                 
@@ -124,7 +122,7 @@ class LoadBBDataset(Dataset):
 if __name__ == '__main__':
     my_dataset = LoadBBDataset('data/train', 101, 150)
     length = my_dataset.__len__()
-    label_sum = 0
+    # label_sum = 0
     for i in random.sample(range(0, length), 100):
         result = my_dataset.__getitem__(i)
 
