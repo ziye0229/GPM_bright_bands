@@ -105,10 +105,12 @@ def test4(f):
     flagBB_1 = flagBB[flagBB == 1]
     flagBB_2 = flagBB[flagBB == 2]
     flagBB_3 = flagBB[flagBB == 3]
-    return [flagBB_neg.shape[0], flagBB_0.shape[0], flagBB_1.shape[0], flagBB_2.shape[0], flagBB_3.shape[0]]
+    return flagBB.shape[0]*flagBB.shape[1], [flagBB_neg.shape[0], flagBB_0.shape[0], flagBB_1.shape[0], flagBB_2.shape[0], flagBB_3.shape[0]]
 
 
 cnt = Counter()
+total_shape_sum = 0
+shape_list_sum = [0, 0, 0, 0, 0]
 files = getFileList('F:\GPM')
 # print(files)
 files = random.sample(files, 500)
@@ -117,7 +119,10 @@ for file_path in tqdm(files, desc='Processing'):
     # test1(f)
     # test2(f)
     # cnt += test3(f)
-    print(test4(f))
+    total_shape, shape_list = test4(f)
+    total_shape_sum += total_shape
+    for i in range(0, len(shape_list_sum)):
+        shape_list_sum[i] += shape_list[i]
 
     # print('Finish!\t', file_path)
 
@@ -146,6 +151,9 @@ for file_path in tqdm(files, desc='Processing'):
 # ax.bar(x=x, height=y)
 # ax.set_title("零度层与亮带距离分布", fontsize=15)
 # print(cnt)
+
+for i in range(0, len(shape_list_sum)):
+    print('{}%'.format(shape_list_sum[i]/total_shape_sum*100))
 
 # i = 176
 # o = 88
