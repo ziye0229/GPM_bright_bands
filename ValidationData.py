@@ -95,6 +95,18 @@ def test3(f):
     return Counter(distance)
 
 
+def test4(f):
+    CSF = f['NS']['CSF']
+    flagBB = CSF['flagBB']
+    flagBB = np.array(flagBB, dtype='int32')
+    flagBB_neg = flagBB[flagBB < 0]
+    flagBB_0 = flagBB[flagBB == 0]
+    flagBB_1 = flagBB[flagBB == 1]
+    flagBB_2 = flagBB[flagBB == 2]
+    flagBB_3 = flagBB[flagBB == 3]
+    return [flagBB_neg.sum(), flagBB_0.sum(), flagBB_1.sum(), flagBB_2.sum(), flagBB_3.sum()]
+
+
 cnt = Counter()
 files = getFileList('F:\GPM')
 # print(files)
@@ -103,7 +115,8 @@ for file_path in tqdm(files, desc='Processing'):
     f = h5py.File(file_path, 'r')
     # test1(f)
     # test2(f)
-    cnt += test3(f)
+    # cnt += test3(f)
+    print(test4(f))
 
     # print('Finish!\t', file_path)
 
@@ -120,15 +133,16 @@ for file_path in tqdm(files, desc='Processing'):
 
     f.close()
 
-x = []
-y = []
-rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
-for item in rst:
-    x.append(item[0])
-    y.append(item[1])
-fig, ax = plt.subplots(figsize=(10, 7))
-ax.bar(x=x, height=y)
-ax.set_title("零度层与亮带距离分布", fontsize=15)
+# 配合test3()显示零度层与亮带距离分布柱状图
+# x = []
+# y = []
+# rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
+# for item in rst:
+#     x.append(item[0])
+#     y.append(item[1])
+# fig, ax = plt.subplots(figsize=(10, 7))
+# ax.bar(x=x, height=y)
+# ax.set_title("零度层与亮带距离分布", fontsize=15)
 
 # i = 176
 # o = 88

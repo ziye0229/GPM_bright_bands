@@ -3,6 +3,7 @@ import h5py
 import math
 from torch.utils.data import Dataset
 import numpy as np
+import random
 
 
 class LoadBBDataset(Dataset):
@@ -123,13 +124,15 @@ if __name__ == '__main__':
     my_dataset = LoadBBDataset('data/train', 101, 150)
     length = my_dataset.__len__()
     label_sum = 0
-    for i in range(0, length):
+    for i in random.sample(range(0, length), 100):
         result = my_dataset.__getitem__(i)
-        result[1][result[1] > 0] = 1
-        label_sum += result[1].sum()
-        if (i+1) % 100 == 0:
-            print(label_sum / ((i+1) * 101 * 49))
-    print(label_sum / (length * 101 * 49))
 
-        # print(result[0], result[1])
-        # print(result[0].shape, result[1].shape)
+        print(result[0], result[1])
+        print(result[0].shape, result[1].shape)
+        
+    #     result[1][result[1] > 0] = 1
+    #     label_sum += result[1].sum()
+    #     if (i+1) % 100 == 0:
+    #         print(label_sum / ((i+1) * 101 * 49))
+    # print(label_sum / (length * 101 * 49))
+
