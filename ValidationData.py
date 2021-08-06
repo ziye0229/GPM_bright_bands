@@ -91,7 +91,8 @@ def test3(f):
         for pixel_flagBB, pixel_BBPeak, pixel_ZeroDeg in zip(pixels_flagBB, pixels_BBPeak, pixels_ZeroDeg):
             if int(pixel_flagBB) > 0:
                 distance.append(int(pixel_ZeroDeg) - int(pixel_BBPeak))
-
+                # if int(pixel_ZeroDeg) - int(pixel_BBPeak) < 0:
+                #     print(int(pixel_ZeroDeg), int(pixel_BBPeak))
     return Counter(distance)
 
 
@@ -104,13 +105,13 @@ def test4(f):
     flagBB_1 = flagBB[flagBB == 1]
     flagBB_2 = flagBB[flagBB == 2]
     flagBB_3 = flagBB[flagBB == 3]
-    return [flagBB_neg.sum(), flagBB_0.sum(), flagBB_1.sum(), flagBB_2.sum(), flagBB_3.sum()]
+    return [flagBB_neg.shape[0], flagBB_0.shape[0], flagBB_1.shape[0], flagBB_2.shape[0], flagBB_3.shape[0]]
 
 
 cnt = Counter()
 files = getFileList('F:\GPM')
 # print(files)
-files = random.sample(files, 100)
+files = random.sample(files, 500)
 for file_path in tqdm(files, desc='Processing'):
     f = h5py.File(file_path, 'r')
     # test1(f)
@@ -133,6 +134,7 @@ for file_path in tqdm(files, desc='Processing'):
 
     f.close()
 
+
 # 配合test3()显示零度层与亮带距离分布柱状图
 # x = []
 # y = []
@@ -143,6 +145,7 @@ for file_path in tqdm(files, desc='Processing'):
 # fig, ax = plt.subplots(figsize=(10, 7))
 # ax.bar(x=x, height=y)
 # ax.set_title("零度层与亮带距离分布", fontsize=15)
+# print(cnt)
 
 # i = 176
 # o = 88
