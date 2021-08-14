@@ -93,12 +93,12 @@ epoch = 10
 batch_size = 1
 
 cols, rows = 2, 6
-figure = plt.figure(figsize=(20, rows*5))
+figure = plt.figure(figsize=(8, rows*2))
 i = 0
 GPM_BB_data = LoadBBDataset('data/train', slice_width, slice_num)
 data_loader = DataLoader(GPM_BB_data, batch_size=batch_size, shuffle=True, num_workers=0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model = torch.load('model-epoch3-batch2000.pth').to(device)
+model = torch.load('model-epoch10-batch4000.pth').to(device)
 for batch_idx, (data, target) in enumerate(data_loader):
     data = data.float().to(device)
     target = target.float()
@@ -110,7 +110,7 @@ for batch_idx, (data, target) in enumerate(data_loader):
         # output = output.cpu().view(101, 49)
         print(output)
 
-    if target.sum() > 1000:
+    if target.sum() >= 0:
         i += 1
         if 1 <= i <= rows:
             figure.add_subplot(rows, cols, i*2-1)

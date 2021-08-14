@@ -183,7 +183,7 @@ class U_Net_3D(nn.Module, ABC):
 
 slice_width = 101
 slice_num = 150
-epoch = 10
+epoch = 20
 batch_size = 12
 lr = 0.02
 loss_sum = 0
@@ -196,7 +196,8 @@ GPM_BB_train_data = LoadBBDataset('data/train', slice_width, slice_num)
 train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, shuffle=False, num_workers=0)
 # val_loader = DataLoader(GPM_BB_val_data, batch_size=batch_size, shuffle=False, num_workers=0)
 
-model = U_Net_3D(177, 3).to(device)
+# model = U_Net_3D(177, 3).to(device)
+model = torch.load('model-epoch10-batch4000.pth').to(device)
 # model = U_Net_3D(177, 1).to(device)
 opt = optim.SGD(model.parameters(), lr=lr)
 # Loss = nn.CrossEntropyLoss()
