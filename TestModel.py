@@ -5,6 +5,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from LoadDataset import LoadBBDataset
 import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 
 class DownConv3D(nn.Module, ABC):
@@ -90,36 +92,45 @@ class U_Net_3D(nn.Module, ABC):
 slice_width = 101
 slice_num = 150
 epoch = 10
-batch_size = 1
+batch_size = 16
+confusion_matrix = np.zeros((4, 4), dtype=int)
+pixel_sum = 0
 
 cols, rows = 2, 6
 figure = plt.figure(figsize=(8, rows*2))
 i = 0
-GPM_BB_data = LoadBBDataset('data/train', slice_width, slice_num)
+GPM_BB_data = LoadBBDataset('data/val', slice_width, slice_num)
 data_loader = DataLoader(GPM_BB_data, batch_size=batch_size, shuffle=True, num_workers=0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model = torch.load('model-epoch10-batch4000.pth').to(device)
-for batch_idx, (data, target) in enumerate(data_loader):
+model = torch.load('CrossEntropyLoss-Weight1_20_100/model-epoch20-batch4000.pth').to(device)
+for batch_idx, (data, target) in tqdm(enumerate(data_loader), total=len(data_loader)):
     data = data.float().to(device)
-    target = target.float()
+    target = target.int()
     with torch.no_grad():
         output = model(data[:, 1:, ...], data[:, 0, ...])
 
-        # print(torch.squeeze(output.cpu(), dim=0))
-        output = torch.argmax(torch.squeeze(output.cpu(), dim=0), 0)
-        # output = output.cpu().view(101, 49)
-        print(output)
+        output = torch.argmax(output, dim=1)
 
-    if target.sum() >= 0:
-        i += 1
-        if 1 <= i <= rows:
-            figure.add_subplot(rows, cols, i*2-1)
-            # plt.axis("off")
-            plt.imshow(torch.squeeze(target, dim=0).T, cmap="gray")
-            figure.add_subplot(rows, cols, i*2)
-            # plt.axis("off")
-            plt.imshow(output.T, cmap="gray")
+    # if target.sum() >= 0:
+    #     i += 1
+    #     if 1 <= i <= rows:
+    #         figure.add_subplot(rows, cols, i*2-1)
+    #         plt.imshow(torch.squeeze(target, dim=0).T, cmap="gray")
+    #         figure.add_subplot(rows, cols, i*2)
+    #         plt.imshow(output.T, cmap="gray")
+    # if i >= rows:
+    #     break
+# plt.show()
 
-    if i >= rows:
-        break
-plt.show()
+
+    output = output.cpu().numpy()
+    target = target.cpu().numpy()
+    for batch in range(output.shape[0]):
+        for i in range(output.shape[1]):
+            for j in range(output.shape[2]):
+                pred_value = output[batch][i][j]
+                true_value = target[batch][i][j]
+                confusion_matrix[true_value][pred_value] += 1
+    pixel_sum += (output.shape[0]*output.shape[1]*output.shape[2])
+
+print(confusion_matrix)

@@ -83,6 +83,12 @@ def test2(f):
 
 
 def test3(f):
+    """
+    探究亮带峰值与零度层之间距离的分布规律
+    结论：呈均值为-2的正态分布
+    :param f:
+    :return:
+    """
     distance = []
     CSF = f['NS']['CSF']
     flagBB = CSF['flagBB']
@@ -102,6 +108,11 @@ def test3(f):
 
 
 def test4(f):
+    """
+    探究无降雨、有降雨无亮带、有降雨有亮带之间的比例关系
+    :param f:
+    :return:
+    """
     CSF = f['NS']['CSF']
     flagBB = CSF['flagBB']
     flagBB = np.array(flagBB, dtype='int32')
@@ -112,18 +123,76 @@ def test4(f):
     return flagBB.shape[0]*flagBB.shape[1], [flagBB_neg.shape[0], flagBB_0.shape[0], flagBB_pos.shape[0]]
 
 
+def test5(f):
+    """
+    探究有亮带和检测为层云降水之间的关系
+    结论：观测到两代是层云降雨的充分条件，但不是必要条件
+    :param f:
+    :return:
+    """
+    CSF = f['NS']['CSF']
+    flagBB = CSF['flagBB']
+    typePrecip = CSF['typePrecip']
+    flagBB = np.array(flagBB, dtype='int32')
+    typePrecip = np.array(typePrecip, dtype='int32')
+
+    for pixcels_flagBB, pixcels_typePrecip in zip(flagBB, typePrecip):
+        for pixcel_flagBB, pixcel_typePrecip in zip(pixcels_flagBB, pixcels_typePrecip):
+            if pixcel_flagBB <= 0 and (pixcel_typePrecip // 10000000) == 1:
+                if pixcel_flagBB != 0:
+                    print(pixcel_flagBB, pixcel_typePrecip)
+
+
+def test6(f):
+    """
+    探究亮带顶位置的分布情况
+    结论：两组正态分布叠加
+    :param f:
+    :return:
+    """
+
+    top_position = []
+    CSF = f['NS']['CSF']
+    BBTop = CSF['binBBTop']
+    for pixcels_top in BBTop:
+        for top in pixcels_top:
+            if int(top) > 0:
+                top_position.append(int(top))
+    return Counter(top_position)
+
+
+def test7(f):
+    """
+    探究零度层的分布情况
+    结论：最小值出现在123层
+    :param f:
+    :return:
+    """
+    zero_position = []
+    VER = f['NS']['VER']
+    ZeroDeg = VER['binZeroDeg']
+    for pixcels_zero in ZeroDeg:
+        for zero in pixcels_zero:
+            if int(zero) > 0:
+                zero_position.append(int(zero))
+    return Counter(zero_position)
+
+
 cnt = Counter()
 total_shape_sum = 0
 shape_list_sum = [0, 0, 0]
-files = getFileList('F:\GPM')
+files = getFileList('F:/2ADPR')
+plt.rcParams['font.sans-serif'] = ['SimHei']    #显示中文标签
+plt.rcParams['axes.unicode_minus'] = False      #这两行需要手动设置
 # print(files)
-files = random.sample(files, 1000)
+files = random.sample(files, 400)
 for file_path in tqdm(files, desc='Processing'):
     f = h5py.File(file_path, 'r')
     # test1(f)
     # test2(f)
-    test3(f)
+    # test3(f)
     # cnt += test3(f)
+
     # total_shape, shape_list = test4(f)
     # total_shape_sum += total_shape
     # for i in range(0, len(shape_list_sum)):
@@ -142,10 +211,12 @@ for file_path in tqdm(files, desc='Processing'):
     # np_factor[np_factor <= -28888.0] = 0
     # print(np_factor.min(), np_factor.max())
 
+    # test5(f)
+
+    cnt += test7(f)
     f.close()
 
-
-# 配合test3()显示零度层与亮带距离分布柱状图
+# # 配合test3()显示零度层与亮带距离分布柱状图
 # x = []
 # y = []
 # rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
@@ -156,9 +227,23 @@ for file_path in tqdm(files, desc='Processing'):
 # ax.bar(x=x, height=y)
 # ax.set_title("零度层与亮带距离分布", fontsize=15)
 # print(cnt)
-
 # for i in range(0, len(shape_list_sum)):
 #     print('{}%'.format(shape_list_sum[i]/total_shape_sum*100))
+
+# 配合test6()\test7()显示分布柱状图
+x = []
+y = []
+rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
+for item in rst:
+    x.append(item[0])
+    y.append(item[1])
+fig, ax = plt.subplots(figsize=(10, 7))
+ax.bar(x=x, height=y)
+ax.set_title("零度层位置分布", fontsize=15)
+print(cnt)
+print(min(x))
+plt.show()
+
 
 # i = 176
 # o = 88

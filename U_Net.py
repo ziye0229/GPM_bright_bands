@@ -6,7 +6,6 @@ from torch.utils.data import DataLoader
 from LoadDataset import LoadBBDataset
 from torch import optim
 import math
-import numpy as np
 
 
 class DownConv(nn.Module, ABC):
