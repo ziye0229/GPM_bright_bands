@@ -177,16 +177,31 @@ def test7(f):
                 zero_position.append(int(zero))
     return Counter(zero_position)
 
+def test8(f):
+    """
+    探究校正后的雷达回波的数据范围
+    :param f:
+    :return:
+    """
+    zfactor = f['NS']['SLV']['zFactorCorrected']
+    zfactor = np.array(zfactor, dtype='float32')
+    zfactor = zfactor[zfactor >= -200]
+    zfactor_min = zfactor.min()
+    zfactor_max = zfactor.max()
+    return zfactor_min, zfactor_max
+
 
 cnt = Counter()
 total_shape_sum = 0
 shape_list_sum = [0, 0, 0]
+zfactor_min = np.inf
+zfactor_max = -np.inf
 files = getFileList('F:/2ADPR')
 plt.rcParams['font.sans-serif'] = ['SimHei']    #显示中文标签
 plt.rcParams['axes.unicode_minus'] = False      #这两行需要手动设置
 # print(files)
 files = random.sample(files, 400)
-for file_path in tqdm(files, desc='Processing'):
+for file_path in files:
     f = h5py.File(file_path, 'r')
     # test1(f)
     # test2(f)
@@ -213,7 +228,15 @@ for file_path in tqdm(files, desc='Processing'):
 
     # test5(f)
 
-    cnt += test7(f)
+    # cnt += test7(f)
+
+    min_num, max_num = test8(f)
+    print(min_num, max_num)
+    if zfactor_max < max_num:
+        zfactor_max = max_num
+    if zfactor_min > min_num:
+        zfactor_min = min_num
+
     f.close()
 
 # # 配合test3()显示零度层与亮带距离分布柱状图
@@ -231,22 +254,24 @@ for file_path in tqdm(files, desc='Processing'):
 #     print('{}%'.format(shape_list_sum[i]/total_shape_sum*100))
 
 # 配合test6()\test7()显示分布柱状图
-x = []
-y = []
-rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
-for item in rst:
-    x.append(item[0])
-    y.append(item[1])
-fig, ax = plt.subplots(figsize=(10, 7))
-ax.bar(x=x, height=y)
-ax.set_title("零度层位置分布", fontsize=15)
-print(cnt)
-print(min(x))
-plt.show()
+# x = []
+# y = []
+# rst = sorted(cnt.items(), key=lambda x: x[0], reverse=False)
+# for item in rst:
+#     x.append(item[0])
+#     y.append(item[1])
+# fig, ax = plt.subplots(figsize=(10, 7))
+# ax.bar(x=x, height=y)
+# ax.set_title("零度层位置分布", fontsize=15)
+# print(cnt)
+# print(min(x))
+# plt.show()
+
+print(zfactor_min, zfactor_max)
 
 
-# i = 176
-# o = 88
+# i = 24
+# o = 24
 # for k in range(2, 7):
 #     for p in range(0, 4):
 #         for s in range(1, 4):
@@ -256,6 +281,6 @@ plt.show()
 #             # else:
 #             #     if o == s * (i - 1) - 2 * p + k + (o + 2 * p - k) % s:
 #             #         print('k:{}, p:{}, s:{}'.format(k, p, s))
-
+#
 #             if o == (i - k + 2 * p) // s + 1:
 #                 print('k:{}, p:{}, s:{}'.format(k, p, s))
