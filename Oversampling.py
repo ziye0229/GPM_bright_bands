@@ -183,25 +183,37 @@ class Oversampling:
 
     def flag_distribution(self):
         cnt = Counter()
-        for file in tqdm(self.files):
-            with h5py.File(file, 'r') as f:
-                CSF = f['FS']['CSF']
-                flagBB = CSF['flagBB']
+        for root, dirs, files in os.walk(self.root_dir):
+            for file in tqdm(files):
+                if os.path.splitext(file)[1] == '.HDF5':
+                    # print(os.path.splitext(file)[0])
+                    file_path = os.path.join(root, file)
+                    with h5py.File(file_path, 'r') as f:
+                        if 'oversample' in file:
+                            flagBB_sliced = np.array(f['flagBB'], dtype='int32')
+                            for i in range(flagBB_sliced.shape[0]):
+                                flag = flagBB_sliced[i]
+                                ratio_list.append(int(flag[flag == 0].shape[0] / (flag.shape[0] * flag.shape[1]) * 10))
 
-                flagBB = np.array(flagBB, dtype='int32')
-                flagBB[flagBB > 0] = 2
-                flagBB[flagBB == 0] = 1
-                flagBB[flagBB < 0] = 0
+                        else:
+                            CSF = f['FS']['CSF']
+                            flagBB = CSF['flagBB']
 
-                ratio_list = []
+                            flagBB = np.array(flagBB, dtype='int32')
+                            flagBB[flagBB > 0] = 2
+                            flagBB[flagBB == 0] = 1
+                            flagBB[flagBB < 0] = 0
 
-                for indexes in self.index_list:
-                    flag = flagBB[indexes[0]:indexes[1]][:]
-                    ratio_list.append(int(flag[flag == 0].shape[0] / (flag.shape[0] * flag.shape[1]) * 10))
+                            ratio_list = []
 
-                cnt.update(ratio_list)
+                            self.__init_index__(flagBB.shape[0])
+                            for indexes in self.index_list:
+                                flag = flagBB[indexes[0]:indexes[1]][:]
+                                ratio_list.append(int(flag[flag == 0].shape[0] / (flag.shape[0] * flag.shape[1]) * 10))
+
+                        cnt.update(ratio_list)
         print(cnt)
 
 my_os = Oversampling('./data/Ku/raw_train', './data/Ku/raw_train', 49, 162, file_time='')
-# my_os.flag_distribution()
-my_os.oversample()
+my_os.flag_distribution()
+# my_os.oversample()
