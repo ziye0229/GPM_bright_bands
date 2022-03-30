@@ -4,6 +4,7 @@ import os
 import math
 import re
 from tqdm import tqdm
+from collections import Counter
 
 
 class Oversampling:
@@ -15,6 +16,8 @@ class Oversampling:
         self.file_time = file_time
 
         self.files = self.get_file_list()
+
+        self.data_len = 0
         self.oversampled_files_num = 0
 
     def __init_data__(self, factor_shape):
@@ -25,18 +28,17 @@ class Oversampling:
                      'BBTop': np.empty([self.slice_num, self.slice_width, factor_shape[-2]], dtype='int32'),
                      'BBBottom': np.empty([self.slice_num, self.slice_width, factor_shape[-2]], dtype='int32'),
                      'BBPeak': np.empty([self.slice_num, self.slice_width, factor_shape[-2]], dtype='int32')}
-        self.data_len = 0
 
-    def __init_index__(self, factor_shape):
+    def __init_index__(self, factor_len):
         self.index_list = []
-        step = math.ceil(factor_shape[0] / self.slice_num)
-        for i in range(0, self.slice_num[0]):
-            if i * step + self.slice_width <= factor_shape[0]:
+        step = math.ceil(factor_len / self.slice_num)
+        for i in range(0, self.slice_num):
+            if i * step + self.slice_width <= factor_len:
                 i_begin = i * step
                 i_end = i * step + self.slice_width
             else:
-                i_begin = factor_shape[0] - self.slice_width
-                i_end = factor_shape[0] + 1
+                i_begin = factor_len - self.slice_width
+                i_end = factor_len
             self.index_list.append([i_begin, i_end])
 
     def oversample(self):
@@ -103,33 +105,35 @@ class Oversampling:
             BBPeak[BBPeak <= -1111] = 77
             BBPeak[BBPeak < 0] = 0
 
+            self.__init_index__(zFactorMeasured.shape[0])
             for indexes in self.index_list:
                 flag = flagBB[indexes[0]:indexes[1]][:]
-                if flag[flag == 0].shape[0] < self.slice_width[0] * self.slice_width[1]:
+                if flag[flag == 0].shape[0] < flag.shape[0] * flag.shape[1] * 0.8:
                     self.generate_new_data(indexes, zFactorMeasured, ZeroDeg, flagBB, BBTop, BBBottom, BBPeak)
 
     def generate_new_data(self, indexes, zFactorMeasured, ZeroDeg, flagBB, BBTop, BBBottom, BBPeak):
-        zFactor_sliced = np.flip(zFactorMeasured[indexes[0]:indexes[1]][:][:], axis=1)
-        zeroDeg_sliced = np.flip(ZeroDeg[indexes[0]:indexes[1]][:], axis=1)
-        flagBB_sliced = np.flip(flagBB[indexes[0]:indexes[1]][:], axis=1)
-        BBTop_sliced = np.flip(BBTop[indexes[0]:indexes[1]][:], axis=1)
-        BBBottom_sliced = np.flip(BBBottom[indexes[0]:indexes[1]][:], axis=1)
-        BBPeak_sliced = np.flip(BBPeak[indexes[0]:indexes[1]][:], axis=1)
-        self.add_data(zFactor_sliced, zeroDeg_sliced, flagBB_sliced, BBTop_sliced, BBBottom_sliced, BBPeak_sliced)
+        # zFactor_sliced = np.flip(zFactorMeasured[indexes[0]:indexes[1]][:][:], axis=1)
+        # zeroDeg_sliced = np.flip(ZeroDeg[indexes[0]:indexes[1]][:], axis=1)
+        # flagBB_sliced = np.flip(flagBB[indexes[0]:indexes[1]][:], axis=1)
+        # BBTop_sliced = np.flip(BBTop[indexes[0]:indexes[1]][:], axis=1)
+        # BBBottom_sliced = np.flip(BBBottom[indexes[0]:indexes[1]][:], axis=1)
+        # BBPeak_sliced = np.flip(BBPeak[indexes[0]:indexes[1]][:], axis=1)
+        # self.add_data(zFactor_sliced, zeroDeg_sliced, flagBB_sliced, BBTop_sliced, BBBottom_sliced, BBPeak_sliced)
 
-        for i in range(1, self.slice_width):
-            new_indexes = [indexes[0]-1, indexes[1]-1]
+        step = 10
+        for i in range(step, self.slice_width, step):
+            new_indexes = [indexes[0]-i, indexes[1]-i]
             try:
                 flag = flagBB[new_indexes[0]:new_indexes[1]][:]
-                if flag[flag == 0].shape[0] < self.slice_width[0] * self.slice_width[1]:
+                if flag[flag == 0].shape[0] < flag.shape[0] * flag.shape[1] * 0.9:
                     self.generate_new_data_sub(new_indexes, zFactorMeasured, ZeroDeg, flagBB, BBTop, BBBottom, BBPeak)
             except:
                 break
-        for i in range(1, self.slice_width):
-            new_indexes = [indexes[0]+1, indexes[1]+1]
+        for i in range(step, self.slice_width, step):
+            new_indexes = [indexes[0]+i, indexes[1]+i]
             try:
                 flag = flagBB[new_indexes[0]:new_indexes[1]][:]
-                if flag[flag == 0].shape[0] < self.slice_width[0] * self.slice_width[1]:
+                if flag[flag == 0].shape[0] < flag.shape[0] * flag.shape[1] * 0.9:
                     self.generate_new_data_sub(new_indexes, zFactorMeasured, ZeroDeg, flagBB, BBTop, BBBottom, BBPeak)
             except:
                 break
@@ -143,36 +147,61 @@ class Oversampling:
         BBPeak_sliced = BBPeak[indexes[0]:indexes[1]][:]
         self.add_data(zFactor_sliced, zeroDeg_sliced, flagBB_sliced, BBTop_sliced, BBBottom_sliced,
                       BBPeak_sliced)
-        zFactor_sliced = np.flip(zFactor_sliced, axis=1)
-        zeroDeg_sliced = np.flip(zeroDeg_sliced, axis=1)
-        flagBB_sliced = np.flip(flagBB_sliced, axis=1)
-        BBTop_sliced = np.flip(BBTop_sliced, axis=1)
-        BBBottom_sliced = np.flip(BBBottom_sliced, axis=1)
-        BBPeak_sliced = np.flip(BBPeak_sliced, axis=1)
-        self.add_data(zFactor_sliced, zeroDeg_sliced, flagBB_sliced, BBTop_sliced, BBBottom_sliced,
-                      BBPeak_sliced)
+        # zFactor_sliced = np.flip(zFactor_sliced, axis=1)
+        # zeroDeg_sliced = np.flip(zeroDeg_sliced, axis=1)
+        # flagBB_sliced = np.flip(flagBB_sliced, axis=1)
+        # BBTop_sliced = np.flip(BBTop_sliced, axis=1)
+        # BBBottom_sliced = np.flip(BBBottom_sliced, axis=1)
+        # BBPeak_sliced = np.flip(BBPeak_sliced, axis=1)
+        # self.add_data(zFactor_sliced, zeroDeg_sliced, flagBB_sliced, BBTop_sliced, BBBottom_sliced,
+        #               BBPeak_sliced)
 
     def add_data(self, zFactor_sliced, zeroDeg_sliced, flagBB_sliced, BBTop_sliced, BBBottom_sliced, BBPeak_sliced):
         if self.data_len == 0:
             self.__init_data__(zFactor_sliced.shape)
-        self.generated_data['zFactor'][self.data_len] = zFactor_sliced
-        self.generated_data['zeroDeg'][self.data_len] = zeroDeg_sliced
-        self.generated_data['flagBB'][self.data_len] = flagBB_sliced
-        self.generated_data['BBTop'][self.data_len] = BBTop_sliced
-        self.generated_data['BBBottom'][self.data_len] = BBBottom_sliced
-        self.generated_data['BBPeak'][self.data_len] = BBPeak_sliced
-        self.data_len += 1
-        if self.data_len == 7934:
-            self.store_oversampled_HDF5()
-            self.__init_data__(zFactor_sliced.shape)
+        try:
+            self.generated_data['zFactor'][self.data_len] = zFactor_sliced
+            self.generated_data['zeroDeg'][self.data_len] = zeroDeg_sliced
+            self.generated_data['flagBB'][self.data_len] = flagBB_sliced
+            self.generated_data['BBTop'][self.data_len] = BBTop_sliced
+            self.generated_data['BBBottom'][self.data_len] = BBBottom_sliced
+            self.generated_data['BBPeak'][self.data_len] = BBPeak_sliced
+            self.data_len += 1
+            if self.data_len == self.slice_num:
+                self.store_oversampled_HDF5()
+                self.__init_data__(zFactor_sliced.shape)
+                self.data_len = 0
+        except:
+            pass
 
     def store_oversampled_HDF5(self):
         self.oversampled_files_num += 1
-        # with h5py.File(self.des + '/oversampled{}.HDF5'.format(self.oversampled_files_num), "w") as f:
-        #     for key, value in self.generated_data.items():
-        #         f.create_dataset(key, data=value)
-        print(self.oversampled_files_num)
+        with h5py.File(self.des + '/oversampled{}.HDF5'.format(self.oversampled_files_num), "w") as f:
+            for key, value in self.generated_data.items():
+                f.create_dataset(key, data=value)
+        # print(self.oversampled_files_num)
 
+    def flag_distribution(self):
+        cnt = Counter()
+        for file in tqdm(self.files):
+            with h5py.File(file, 'r') as f:
+                CSF = f['FS']['CSF']
+                flagBB = CSF['flagBB']
 
-slice = Oversampling('./data/Ku/raw_val', './data/Ku/val', 49, 180, file_time='')
-slice.oversample()
+                flagBB = np.array(flagBB, dtype='int32')
+                flagBB[flagBB > 0] = 2
+                flagBB[flagBB == 0] = 1
+                flagBB[flagBB < 0] = 0
+
+                ratio_list = []
+
+                for indexes in self.index_list:
+                    flag = flagBB[indexes[0]:indexes[1]][:]
+                    ratio_list.append(int(flag[flag == 0].shape[0] / (flag.shape[0] * flag.shape[1]) * 10))
+
+                cnt.update(ratio_list)
+        print(cnt)
+
+my_os = Oversampling('./data/Ku/raw_train', './data/Ku/raw_train', 49, 162, file_time='')
+# my_os.flag_distribution()
+my_os.oversample()
