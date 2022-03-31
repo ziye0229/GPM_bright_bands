@@ -10,6 +10,16 @@ import numpy as np
 
 from models.U_Net_3D import U_Net_3D
 
+class U_Net_3D_flag_position(nn.Module):
+    def __init__(self):
+        super(U_Net_3D_flag_position, self).__init__()
+        self.model_flag = U_Net_3D(76, 3)
+        self.model_position = U_Net_3D(76, 78)
+
+    def forward(self, factor):
+        out_flag, factor = self.model_flag(factor)
+        out_position, _ = self.model_position(factor)
+        return out_flag, out_position
 
 class FocalLoss(nn.Module):
     """
@@ -98,7 +108,7 @@ slice_width = 49
 slice_num = 162
 epoch = 15
 batch_size = 8
-lr = 0.01
+lr = 0.005
 lr_unchanged = True
 loss_sum = 0
 loss_cnt = 0
@@ -110,11 +120,12 @@ GPM_BB_train_data = LoadBBDataset('../data/Ku/raw_train', slice_width, slice_num
 train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, sampler=RandomSampler(GPM_BB_train_data),
                           pin_memory=True, num_workers=4)
 
-model = U_Net_3D(76, 78).to(device)
+model = U_Net_3D_flag_position().to(device)
 
 opt = optim.Adam(model.parameters(), lr=lr)
 # opt = optim.SGD(model.parameters(), lr=lr)
-focal_loss = FocalLoss(num_class=78)
+focal_loss_flag = FocalLoss(num_class=3)
+focal_loss_position = FocalLoss(num_class=78)
 
 for epoch_idx in range(0, epoch):
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -136,10 +147,13 @@ for epoch_idx in range(0, epoch):
 
             BBPeak = target[:, -1, ...]
 
-        output = model(factor)
-        opt.zero_grad()
-        loss = focal_loss(output, BBPeak)
+        out_flag, out_position = model(factor)
 
+        out_position[:, 76, ...] = out_flag[:, 1, ...]
+        out_position[:, 77, ...] = out_flag[:, 0, ...]
+
+        opt.zero_grad()
+        loss = focal_loss_flag(out_flag, flag) + focal_loss_position(out_position, BBPeak)
         loss.backward()
         opt.step()
 
@@ -157,8 +171,8 @@ for epoch_idx in range(0, epoch):
                     print('Change lr to {}'.format(lr))
                     opt = optim.SGD(model.parameters(), lr=lr)
 
-                Conv1_weight = model.Conv1.down3D[0].weight
-                Conv1_3D_weight = model.Conv1_3D[0].weight
+                Conv1_weight = model.model_flag.Conv1.down3D[0].weight
+                Conv1_3D_weight = model.model_flag.Conv1_3D[0].weight
                 print('Conv1 weight:\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.data.abs().max(),
                                                                    Conv1_weight.data.abs().min()))
                 print('Conv1_3D weight:\tMax:\t{}, Min:\t{}'.format(Conv1_3D_weight.data.abs().max(),
@@ -171,4 +185,5 @@ for epoch_idx in range(0, epoch):
                 print('epoch:{}, batch:{}, loss:{}'.format(epoch_idx, batch_idx, loss_sum / loss_cnt))
                 loss_sum = 0
                 loss_cnt = 0
+
     torch.save(model, 'U_Net_3D.pth')

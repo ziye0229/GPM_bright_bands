@@ -79,8 +79,7 @@ class U_Net_3D(nn.Module):
             nn.BatchNorm3d(1),
             nn.ReLU(inplace=True)
         )
-        self.Conv6 = Conv2D(in_chs=in_chs, out_chs=32, kernel=3, stride=1, padding=1)
-        self.Conv7 = Conv2D(in_chs=32, out_chs=out_chs, kernel=3, stride=1, padding=1)
+        self.Conv6 = Conv2D(in_chs=in_chs, out_chs=out_chs)
 
     def forward(self, zFactor):
         zFactor = self.Conv0(zFactor.unsqueeze(dim=1))
@@ -102,12 +101,11 @@ class U_Net_3D(nn.Module):
 
         f = self.Conv1_3D(f)  # (batch_size, 1, 76, 24, 24)
 
-        f = torch.squeeze(f, dim=1)  # (batch_size, 76, 24, 24)
+        zFactor = torch.squeeze(f, dim=1)  # (batch_size, 76, 24, 24)
 
-        f = self.Conv6(f)
-        f = self.Conv7(f)
+        f = self.Conv6(zFactor)
         f = F.softmax(f, dim=1)
-        return f
+        return f, zFactor
 
 
 if __name__ == '__main__':
