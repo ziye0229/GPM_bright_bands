@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from LoadDataset import LoadBBDataset
+from torch.utils.data import RandomSampler
 from torch import optim
 import math
 import numpy as np
@@ -58,7 +59,7 @@ class FocalLoss(nn.Module):
             logit = logit.view(logit.size(0), logit.size(1), -1)
             logit = logit.permute(0, 2, 1).contiguous()
             logit = logit.view(-1, logit.size(-1))
-        target = target.view(-1, 1)
+        target = target.reshape(-1, 1)
 
         # N = input.size(0)
         # alpha = torch.ones(N, self.num_class)
@@ -105,8 +106,9 @@ loss_cnt = 0
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.backends.cudnn.benchmark = True
 
-GPM_BB_train_data = LoadBBDataset('./data/sliced', slice_width, slice_num)
-train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, shuffle=True, num_workers=0)
+GPM_BB_train_data = LoadBBDataset('../data/Ku/raw_train', slice_width, slice_num)
+train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, sampler=RandomSampler(GPM_BB_train_data),
+                          pin_memory=True, num_workers=4)
 
 model = U_Net_3D(76, 78).to(device)
 
@@ -116,7 +118,8 @@ focal_loss = FocalLoss(num_class=78)
 
 for epoch_idx in range(0, epoch):
     for batch_idx, (data, target) in enumerate(train_loader):
-        data = data.to(device).float()
+        data = data.to(device, non_blocking=True).float()
+        target = target.to(device, non_blocking=True).long()
 
         with torch.no_grad():
             flag = data[:, 0, ...].long()
@@ -131,9 +134,11 @@ for epoch_idx in range(0, epoch):
             # zero_ca = torch.from_numpy(zero_ca).unsqueeze(dim=-1).unsqueeze(dim=-1).to(device).float()
             factor = data[:, 2:, ...]
 
+            BBPeak = target[:, -1, ...]
+
         output = model(factor)
         opt.zero_grad()
-        loss = focal_loss(output, flag)
+        loss = focal_loss(output, BBPeak)
 
         loss.backward()
         opt.step()
@@ -142,7 +147,7 @@ for epoch_idx in range(0, epoch):
             loss_sum += loss
             loss_cnt += 1
 
-            if batch_idx % 100 == 0:
+            if loss_cnt == 100:
                 if lr > 0.001 and epoch_idx >= 5:
                     lr = 0.001
                     print('Change lr to {}'.format(lr))

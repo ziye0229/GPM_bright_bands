@@ -12,42 +12,24 @@ class DownConv3D(nn.Module):
     def __init__(self, in_chs, out_chs):
         super(DownConv3D, self).__init__()
         self.down3D = nn.Sequential(
-            nn.Conv3d(in_channels=in_chs, out_channels=in_chs, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm3d(in_chs),
-            nn.ReLU(inplace=True),
             nn.Conv3d(in_channels=in_chs, out_channels=out_chs, kernel_size=3, stride=1, padding=1, bias=True),
             nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True),
-            nn.Conv3d(in_channels=out_chs, out_channels=out_chs, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True),
-        )
-        self.conv1x1 = nn.Sequential(
-            nn.Conv3d(in_channels=in_chs, out_channels=out_chs, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
-        shortcut = self.conv1x1(x)
         x = self.down3D(x)
-        return shortcut + x
+        return x
 
 
 class UpConv3D(nn.Module):
     def __init__(self, in_chs, out_chs, output_padding):
         super(UpConv3D, self).__init__()
         self.up3D = nn.Sequential(
-            nn.Conv3d(in_channels=in_chs, out_channels=in_chs, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm3d(in_chs),
-            nn.ReLU(inplace=True),
             nn.ConvTranspose3d(in_channels=in_chs, out_channels=out_chs, kernel_size=4, padding=1, stride=2, bias=True,
                                output_padding=output_padding),
             nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True),
-            nn.Conv3d(in_channels=out_chs, out_channels=out_chs, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True)
         )
         self.Conv3D = DownConv3D(in_chs=in_chs, out_chs=out_chs)
 
@@ -128,14 +110,11 @@ class U_Net_3D(nn.Module):
         return f
 
 
-
-
-
 if __name__ == '__main__':
     slice_width = [49, 49]
     slice_num = [180, 1]
     epoch = 15
-    batch_size = 8
+    batch_size = 16
     lr = 0.01
     lr_unchanged = True
     loss_sum = 0
