@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from LoadDataset import LoadBBDataset
+from util.LoadDataset import LoadBBDataset
 from torch import optim
 import math
 import numpy as np
@@ -14,7 +13,7 @@ class DownConv3D(nn.Module):
         self.down3D = nn.Sequential(
             nn.Conv3d(in_channels=in_chs, out_channels=out_chs, kernel_size=3, stride=1, padding=1, bias=True),
             nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
 
     def forward(self, x):
@@ -29,7 +28,7 @@ class UpConv3D(nn.Module):
             nn.ConvTranspose3d(in_channels=in_chs, out_channels=out_chs, kernel_size=4, padding=1, stride=2, bias=True,
                                output_padding=output_padding),
             nn.BatchNorm3d(out_chs),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
         self.Conv3D = DownConv3D(in_chs=in_chs, out_chs=out_chs)
 
@@ -47,7 +46,7 @@ class Conv2D(nn.Module):
             nn.Conv2d(in_channels=in_chs, out_channels=out_chs, kernel_size=kernel, stride=stride, padding=padding,
                       bias=True),
             nn.BatchNorm2d(out_chs),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
 
     def forward(self, x):
@@ -64,7 +63,7 @@ class U_Net_3D(nn.Module):
         self.Conv0 = nn.Sequential(
             nn.Conv3d(in_channels=1, out_channels=16, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm3d(16),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
         self.Conv1 = DownConv3D(in_chs=16, out_chs=16)
         self.Conv2 = DownConv3D(in_chs=16, out_chs=32)
@@ -77,7 +76,7 @@ class U_Net_3D(nn.Module):
         self.Conv1_3D = nn.Sequential(
             nn.Conv3d(in_channels=16, out_channels=1, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm3d(1),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=False)
         )
         self.Conv6 = Conv2D(in_chs=in_chs, out_chs=out_chs)
 
@@ -104,7 +103,7 @@ class U_Net_3D(nn.Module):
         zFactor = torch.squeeze(f, dim=1)  # (batch_size, 76, 24, 24)
 
         f = self.Conv6(zFactor)
-        f = F.softmax(f, dim=1)
+        # f = F.softmax(f, dim=1)
         return f, zFactor
 
 

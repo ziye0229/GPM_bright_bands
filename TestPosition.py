@@ -1,14 +1,10 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from LoadDataset import LoadBBDataset
+from util.LoadDataset import LoadBBDataset
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import RandomSampler
-from models.U_Net_3D import U_Net_3D
-
 
 slice_width = 49
 slice_num = 162
@@ -39,16 +35,19 @@ for batch_idx, (data, target) in tqdm(enumerate(data_loader), total=len(data_loa
         bottom = target[:, 1, ...].long()
         peak = target[:, 2, ...].long()
 
-        output = model(factor)
+        out_flag, out_position = model(factor)
 
-        output = torch.argmax(output, dim=1).cpu()
+        out_position[:, 76, ...] = out_flag[:, 1, ...]
+        out_position[:, 77, ...] = out_flag[:, 0, ...]
+
+        output = torch.argmax(out_position, dim=1).cpu()
         position = peak.cpu()
 
     for batch in range(output.shape[0]):
         target = position[batch, ...]
         pre = output[batch, ...]
 
-        if target[target != 77].shape[0] != 0:
+        if target[target < 76].shape[0] != 0:
             i += 1
             if 1 <= i <= rows:
                 figure.add_subplot(rows, cols, i*2-1)

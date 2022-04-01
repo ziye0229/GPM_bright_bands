@@ -2,10 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from LoadDataset import LoadBBDataset
+from util.LoadDataset import LoadBBDataset
 from torch.utils.data import RandomSampler
 from torch import optim
-import math
 import numpy as np
 
 from models.U_Net_3D import U_Net_3D
@@ -104,86 +103,88 @@ class FocalLoss(nn.Module):
         return loss
 
 
-slice_width = 49
-slice_num = 162
-epoch = 15
-batch_size = 8
-lr = 0.005
-lr_unchanged = True
-loss_sum = 0
-loss_cnt = 0
+if __name__ == '__main__':
+    slice_width = 49
+    slice_num = 162
+    epoch = 15
+    batch_size = 16
+    lr = 0.005
+    lr_unchanged = True
+    loss_sum = 0
+    loss_cnt = 0
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-torch.backends.cudnn.benchmark = True
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    torch.backends.cudnn.benchmark = True
+    torch.autograd.set_detect_anomaly(True)
 
-GPM_BB_train_data = LoadBBDataset('../data/Ku/raw_train', slice_width, slice_num)
-train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, sampler=RandomSampler(GPM_BB_train_data),
-                          pin_memory=True, num_workers=4)
+    GPM_BB_train_data = LoadBBDataset('../data/Ku/raw_train', slice_width, slice_num)
+    train_loader = DataLoader(GPM_BB_train_data, batch_size=batch_size, sampler=RandomSampler(GPM_BB_train_data),
+                              pin_memory=True, num_workers=4)
 
-model = U_Net_3D_flag_position().to(device)
+    model = U_Net_3D_flag_position().to(device)
 
-opt = optim.Adam(model.parameters(), lr=lr)
-# opt = optim.SGD(model.parameters(), lr=lr)
-focal_loss_flag = FocalLoss(num_class=3)
-focal_loss_position = FocalLoss(num_class=78)
+    opt = optim.Adam(model.parameters(), lr=lr)
+    # opt = optim.SGD(model.parameters(), lr=lr)
+    focal_loss_flag = nn.CrossEntropyLoss().to(device)
+    focal_loss_position = nn.CrossEntropyLoss().to(device)
 
-for epoch_idx in range(0, epoch):
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data = data.to(device, non_blocking=True).float()
-        target = target.to(device, non_blocking=True).long()
+    for epoch_idx in range(0, epoch):
+        for batch_idx, (data, target) in enumerate(train_loader):
+            data = data.to(device, non_blocking=True).float()
+            target = target.to(device, non_blocking=True).long()
 
-        with torch.no_grad():
-            flag = data[:, 0, ...].long()
-            # zero = data[:, 1, ...].unsqueeze(dim=1).long()
-            # zero = torch.zeros(zero.shape[0], 76, zero.shape[-2], zero.shape[-1], dtype=torch.float32).to(
-            #     device).scatter_(1, zero, 1)
-            # zero_ca = np.zeros((data.shape[0], 76))
-            # for i in range(data.shape[0]):
-            #     zero_mean = data[i, 1, ...].mean()
-            #     norm = lambda x: math.exp(-(x - (zero_mean - 2)) ** 2 / (2 * 15 ** 2))
-            #     zero_ca[i] = np.array([norm(j) for j in range(76)])
-            # zero_ca = torch.from_numpy(zero_ca).unsqueeze(dim=-1).unsqueeze(dim=-1).to(device).float()
-            factor = data[:, 2:, ...]
+            with torch.no_grad():
+                flag = data[:, 0, ...].long()
+                # zero = data[:, 1, ...].unsqueeze(dim=1).long()
+                # zero = torch.zeros(zero.shape[0], 76, zero.shape[-2], zero.shape[-1], dtype=torch.float32).to(
+                #     device).scatter_(1, zero, 1)
+                # zero_ca = np.zeros((data.shape[0], 76))
+                # for i in range(data.shape[0]):
+                #     zero_mean = data[i, 1, ...].mean()
+                #     norm = lambda x: math.exp(-(x - (zero_mean - 2)) ** 2 / (2 * 15 ** 2))
+                #     zero_ca[i] = np.array([norm(j) for j in range(76)])
+                # zero_ca = torch.from_numpy(zero_ca).unsqueeze(dim=-1).unsqueeze(dim=-1).to(device).float()
+                factor = data[:, 2:, ...]
 
-            BBPeak = target[:, -1, ...]
+                BBPeak = target[:, -1, ...]
 
-        out_flag, out_position = model(factor)
+            out_flag, out_position = model(factor)
 
-        out_position[:, 76, ...] = out_flag[:, 1, ...]
-        out_position[:, 77, ...] = out_flag[:, 0, ...]
+            out_position[:, 76, ...] = out_flag[:, 1, ...]
+            out_position[:, 77, ...] = out_flag[:, 0, ...]
 
-        opt.zero_grad()
-        loss = focal_loss_flag(out_flag, flag) + focal_loss_position(out_position, BBPeak)
-        loss.backward()
-        opt.step()
+            opt.zero_grad()
+            loss = focal_loss_flag(out_flag, flag) + focal_loss_position(out_position, BBPeak)
+            loss.backward()
+            opt.step()
 
-        with torch.no_grad():
-            loss_sum += loss
-            loss_cnt += 1
+            with torch.no_grad():
+                loss_sum += loss
+                loss_cnt += 1
 
-            if loss_cnt == 100:
-                if lr > 0.001 and epoch_idx >= 5:
-                    lr = 0.001
-                    print('Change lr to {}'.format(lr))
-                    opt = optim.SGD(model.parameters(), lr=lr)
-                elif lr > 0.0001 and epoch_idx >= 10:
-                    lr = 0.0001
-                    print('Change lr to {}'.format(lr))
-                    opt = optim.SGD(model.parameters(), lr=lr)
+                if loss_cnt == 100:
+                    if lr > 0.001 and epoch_idx >= 5:
+                        lr = 0.001
+                        print('Change lr to {}'.format(lr))
+                        opt = optim.SGD(model.parameters(), lr=lr)
+                    elif lr > 0.0001 and epoch_idx >= 10:
+                        lr = 0.0001
+                        print('Change lr to {}'.format(lr))
+                        opt = optim.SGD(model.parameters(), lr=lr)
 
-                Conv1_weight = model.model_flag.Conv1.down3D[0].weight
-                Conv1_3D_weight = model.model_flag.Conv1_3D[0].weight
-                print('Conv1 weight:\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.data.abs().max(),
-                                                                   Conv1_weight.data.abs().min()))
-                print('Conv1_3D weight:\tMax:\t{}, Min:\t{}'.format(Conv1_3D_weight.data.abs().max(),
-                                                                    Conv1_3D_weight.data.abs().min()))
-                print('Conv1 grad:\t\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.grad.data.abs().max(),
-                                                                   Conv1_weight.grad.data.abs().min()))
-                print('Conv1_3D grad:\t\tMax:\t{}, Min:\t{}'.format(Conv1_3D_weight.grad.data.abs().max(),
-                                                                    Conv1_3D_weight.grad.data.abs().min()))
+                    Conv1_weight = model.model_flag.Conv1.down3D[0].weight
+                    Conv1_3D_weight = model.model_flag.Conv1_3D[0].weight
+                    print('Conv1 weight:\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.data.abs().max(),
+                                                                       Conv1_weight.data.abs().min()))
+                    print('Conv1_3D weight:\tMax:\t{}, Min:\t{}'.format(Conv1_3D_weight.data.abs().max(),
+                                                                        Conv1_3D_weight.data.abs().min()))
+                    print('Conv1 grad:\t\t\tMax:\t{}, Min:\t{}'.format(Conv1_weight.grad.data.abs().max(),
+                                                                       Conv1_weight.grad.data.abs().min()))
+                    print('Conv1_3D grad:\t\tMax:\t{}, Min:\t{}'.format(Conv1_3D_weight.grad.data.abs().max(),
+                                                                        Conv1_3D_weight.grad.data.abs().min()))
 
-                print('epoch:{}, batch:{}, loss:{}'.format(epoch_idx, batch_idx, loss_sum / loss_cnt))
-                loss_sum = 0
-                loss_cnt = 0
+                    print('epoch:{}, batch:{}, loss:{}'.format(epoch_idx, batch_idx, loss_sum / loss_cnt))
+                    loss_sum = 0
+                    loss_cnt = 0
 
-    torch.save(model, 'U_Net_3D.pth')
+        torch.save(model, 'U_Net_3D.pth')

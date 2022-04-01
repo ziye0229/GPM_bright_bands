@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from LoadDataset import LoadBBDataset
+from util.LoadDataset import LoadBBDataset
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm

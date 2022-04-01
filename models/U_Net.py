@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from LoadDataset import LoadBBDataset
+from util.LoadDataset import LoadBBDataset
 from torch import optim
 import math
 import numpy as np
